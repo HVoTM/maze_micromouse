@@ -19,15 +19,35 @@
 #### Resources
 - https://en.wikipedia.org/wiki/Loop-erased_random_walk
 - https://weblog.jamisbuck.org/2011/1/20/maze-generation-wilson-s-algorithm
+- https://www.astrolog.org/labyrnth/algrithm.htm#solve
 
 ### Aldous-Broder
 ### Fractal Tessellation algorithm 
 
 ## [Maze-Solving Algorithms](https://en.wikipedia.org/wiki/Maze-solving_algorithm)
 - Maze-Solving algorithm: 
-    - Wall-following
-    - Djikstra
+    - Wall-following: right-hand and left-hand 
+    - Depth-first search and Breadth-first search
+    - Pledge
+    - Trémaux
+    - Dijkstra
     - A-star
+
+### Wall-following
+Limitations
+- Not Optimal: Does not guarantee the shortest path.
+- Fails in Certain Mazes: Does not work for mazes with isolated walls or loops that are not connected to the boundary.
+
+### Dead-end Filling
+It can be used for solving mazes on paper or with a computer program, but it is not useful to a person inside an unknown maze since this method looks at the entire maze at once.
+
+### Dijkstra's Algorithm
+
+- Wiki: https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#:~:text=Dijkstra's%20algorithm%20(%2F%CB%88da%C9%AA,and%20published%20three%20years%20later.
+- W3Schools: https://www.w3schools.com/dsa/dsa_algo_graphs_dijkstra.php
+## Game & Simulation:
+- State Machines
+   + StepMode or time-step visualization
 
 # To-dos
 - [] Solver: Adding shadowy effect or contour on the walls to show a glowy neon effect
@@ -35,9 +55,9 @@
     - mazesize, block size
     - color setting for maze (pertinent to the maze design black-wall white-path or green-black)
     - find some ways to play with time speed to manipulate the progression to slow or fast (using `pygame.Clock`)
-- [] Pause and step function on the main display
-- [] After implementing the solver, adding a faded effect (using alpha stuff) to show like a trailing effect of the solver (FOR FUN)
-- [] After getting a functioning mazesolver, restructure the codebase into different maze classes for each type of maze generation? NOTE: NEED TO RESEARCH MORE ON THIS
+- [x] Pause and step function on the main display
+- [x] After implementing the solver, adding a faded effect (using alpha stuff) to show like a trailing effect of the solver and show grids that the solver has been on
+- [] After getting a functioning mazesolver, restructure the codebase into different maze classes for each type of maze generation? NOTE: NEED TO ==RESEARCH MORE ON THIS==
     + Abstract data types
     + dataclass
     + https://www.geeksforgeeks.org/abstract-data-types/
@@ -45,9 +65,9 @@
     + unittest, pytest
     + https://docs.python-guide.org/writing/tests/
 
-- Distance Map - Heatmap: finding the distance for a starting cell to other cells (kinda like Floyd-Warshall)
+- [] Distance Map - Heatmap: finding the distance for a starting cell to other cells (kinda like Floyd-Warshall)
 ![alt text](image.png)
-
+- [] Simultaneous Localization and Mapping for the real robotic mouse
 - [] Create the design (black-wall, white-path) like the one in the Wikipedia
     - Color-picker
 - [] HexaMaze, Triangular, Circular Grid
@@ -58,7 +78,7 @@
 # Resources:
 - Reference to one of the guys: https://github.com/keesiemeijer/maze-generator/tree/master
 - _(a very cool application for referencing)_ Codebox Software: https://codebox.net/pages/maze-generator
-- 
+- UML - LucidChart for state machine diagrams
 
 # Problems & Debugs
 ## 3/14/2025
@@ -147,4 +167,37 @@ To create a maze, save it to a file, and then load it later for non-random testi
 - Load the maze's structure from the file and reconstruct the maze grid.
 3. Use the Loaded Maze:
 - Use the loaded maze for solving algorithms without regenerating it randomly.
+
+## 4/1/2025
+- Saving maze and loading maze for MazeMap objects
+   - adding another element or condition of checking for loading if the dimension of the mazes are not match -> ELSE rescale the maze with a mathematical function (harder to implement)
+   - TWO WAYS:
+      + Validation
+      + Rescaling
+- Fixed the pause and stepMode phase:
+   - If not in stepMode, then we can pause or resume whenever we like during the simulation
+   - If we are in stepMode, then:
+      1. We cannot use pause until we deactivate the stepMode
+      2. During stepMode: pause will always be true
+      3. Out of the stepMode: pause will be set to False to resume
+      4. Advancing the time step by hitting the right arrow key -> `advancedOnestep` is now set to True
+      5. pause is the overall encompassing function: so check for `paused` state
+         1. if `stepMode` and `advanceOnestep` -> we set the advancedOnestep to false and run 1 time of our computation
+         2. Else just skip the whole computation until we reset the `stepMode` as False or hit `advanceOnestep` again
+- Added Solver's `randomMouse()` algorithm
+
+## 4/16/2025
+- If you want to initialize a matrix (2-D array) with infinity value (used in Dijkstra's algorithm):
+```self.distances = [[float('inf') for _ in range(self.maze.cols)] for _ in range(self.maze.rows)] ```
+, doing this: `self.distances = [[float('inf') * self.maze.cols] for _ in range(self.maze.rows)]` will only return a 1-D array
+
+Feel free to try:
+```py
+distances = [[float('inf') * 5] for _ in range(6)]
+distances_right = [[float('inf') for _ in range(5)] for _ in range(6)]    
+print(distances)
+print(distances_right)
+maat = [[0]*5 for _ in range(6)]
+print(maat)
+```
 
