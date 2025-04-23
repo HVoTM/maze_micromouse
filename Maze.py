@@ -139,7 +139,8 @@ class MazeMap:
                 self.removeWalls(self.MazeGrid[x1][y1], self.MazeGrid[x2][y2])
                 # Join the sets of the formerly divided cells - UNIONIZE the two sets!!! hell ye Marx
                 self.disjointSet.union(x1, y1, x2, y2)
-
+        print(self.walls)
+        
     def iterativeKruskal_preload(self):
         """
         Same as the randomized iterative Kruskal but we just computed them all beforehand, before getting into the loop

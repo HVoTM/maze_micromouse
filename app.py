@@ -124,10 +124,10 @@ def mainMazeProgram(maze: "Maze.MazeMap", mouseSolver: "solver.Mouse", fpsSpeed:
                 elif event.key == pygame.K_TAB:
                     stepMode = not stepMode # (we just want a per-time-step visualization advancing mode)
                     if stepMode:
-                        current_state = GameState.PAUSED
+                        paused = True
                         print("Step mode enabled. Press right-arrow key (->) to step through the program.")
                     else:
-                        current_state = GameState.RESUMED
+                        paused = False
                         print("Step mode disabled. Resuming normal execution.")
 
                 elif event.key == pygame.K_RIGHT and stepMode:  # Perform one step in step mode
@@ -171,9 +171,191 @@ def mainMazeProgram(maze: "Maze.MazeMap", mouseSolver: "solver.Mouse", fpsSpeed:
         if paused:
             if stepMode and advanceOnestep:
                 # Since we are pressing the right key, so we just run for one iteration
-                advanceOnestep = False #  
+                advanceOnestep = False # 
+        else:
+            if current_state == GameState.IDLE:
+                pass
+            # Resume solving or other tasks
+            elif current_state == GameState.GENERATING:
+                if not mazeGenerated:
+                    # Generating state
+                    if generatorName == "dfs":
+                        maze.iterativeDFS()
+                        if maze.mazeGenerated:
+                            mazeGenerated = True
+                    elif generatorName == "kruskal":
+                        if maze.walls:
+                            maze.iterativeKruskal()
+                        else:
+                            mazeGenerated=True
+                    elif generatorName == "prim":
+                        if maze.walls:
+                            maze.iterativePrim()
+                        else:
+                            mazeGenerated = True
+                    elif generatorName == "wilson":
+                        if maze.remainingCells:
+                            maze.iterativeWilson()
+                        else:
+                            mazeGenerated = True
+                # Condition check to flag the state
+                if mazeGenerated:
+                    current_state = GameState.IDLE
+                    print("Maze Generation complete!")
+
+            elif current_state == GameState.SOLVING and not reachedGoal:
+                if not mouseSolver.MazeSolved:
+                    if solver == 'dfs':
+                        mouseSolver.depthFirstSearch_iter()
+                    elif solver == 'bfs':
+                        mouseSolver.breadthFirstSearch_iter()
+                    elif solver == 'djikstra':
+                        mouseSolver.dijkstra_iter()
+                    elif solver == 'a_star':  
+                        mouseSolver.astar_iter()
+                    mouseSolver.updateTrailsofMouse()
+                else:
+                    reachedGoal = True
+                    print("Reach goal at x = {}| y = {}".format(mouseSolver.endX, mouseSolver.endY))
+                    mouseSolver.highlightFinalPath()
+                    current_state = GameState.IDLE
+        # -------------------------------------------------------------------------------------
+        # DISPLAY SECTION            
+        # Fill the screen with the background color first and foremost
+        maze.screen.fill(maze.backgroundColor)
+        # Update the maze's grids' Cell objects - 
+        for x in range(maze.cols):
+            for y in range(maze.rows): 
+                maze.MazeGrid[x][y].DrawCell(main_screen)
+        # Add a blinking effect to a specific cell (e.g., the starting cell)
+        maze.blinkSpecifiedCell(main_screen, maze.MazeGrid[mouseSolver.x][mouseSolver.y])
+        # Update for the solver mouse if we are solving
+        if current_state == GameState.SOLVING:
+        # Get the current position of the maze solver mouse on the map, see where it is at
+            print("Update after running solver: Mouse currently at x = {} | y = {}".format(mouseSolver.x, mouseSolver.y))
+        # Update the display
+        pygame.display.update()
+        # Control the frame rate
+        mainclock.tick(fpsSpeed)
+        if log_data:
+            # Logging info stuff- not that it is necessary but is good to know when working with data-intensive applications
+            print("Time passed in pygame's Clock: ",maze.clock.get_time())
+            print("Current Frame per Second: ", maze.clock.get_fps())
+    pygame.quit()
+
+def mainMazeProgram_util(maze: "Maze.MazeMap", mouseSolver: "solver.Mouse",control_vars, fpsSpeed: int= 60, generatorName: str="dfs", solver: str='dfs', log_data:bool = False) -> None:
+    # TODO TODO TODO: add utility functions to initialize algorithms and runnning generator/solver to make
+    # the programs more compact
+    # Init program for the necessary algorithms
+    pygame.init()
+    main_screen = pygame.display.set_mode((MAZE_WIDTH, MAZE_HEIGHT))
+    mainclock = pygame.time.Clock()
+
+    if generatorName == "kruskal":
+        maze.generateListofWalls()
+    elif generatorName == "prim":
+        # Iinitialize the Prim's algorithm
+        # Mark the cell as visited so that we don't have to revisit it 
+        maze.current.visited = True
+        # Initialize the wall list with the walls of the starting cell
+        maze.walls = maze.retrieveWallsasXY_Tuple(maze.current)
+    elif generatorName == "wilson":
+        maze.init_Wilson()
+
+    # State and Flags for running flow
+    running = True
+    current_state = GameState.IDLE
+    stepMode = False
+    advanceOnestep = False
+    paused = False
+    mazeGenerated = False
+    mazeLoaded = False # a flag to signal that maze is already loaded and disable for further loading
+    reachedGoal = False
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                pygame.quit()
+                sys.exit()
+            # Key-press events
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE: # Toggle pause
+                    if not stepMode: # preventing the program from resuming if in stepMode
+                        # if current_state == GameState.PAUSED:
+                        #     current_state = GameState.RESUMED
+                        #     print("Resuming program...")
+                        # elif current_state in [GameState.IDLE, GameState.RESUMED, GameState.SOLVING, GameState.GENERATING]:
+                        #     current_state = GameState.PAUSED
+                        #     print("Program paused.")
+                        paused = not paused
+                        if paused:
+                            print("Program paused")
+                        else:
+                            print("Program resuming")
+
+                elif event.key == pygame.K_TAB:
+                    stepMode = not stepMode # (we just want a per-time-step visualization advancing mode)
+                    if stepMode:
+                        current_state = GameState.PAUSED
+                        print("Step mode enabled. Press right-arrow key (->) to step through the program.")
+                    else:
+                        current_state = GameState.RESUMED
+                        print("Step mode disabled. Resuming normal execution.")
+
+                elif event.key == pygame.K_RIGHT and stepMode:  # Perform one step in step mode
+                    print("Performing one step...")
+                    advanceOnestep = True
+
+                elif event.key == pygame.K_UP:  # Increase speed
+                    fpsSpeed += 5
+                elif event.key == pygame.K_DOWN:  # Decrease speed
+                    fpsSpeed = max(5, fpsSpeed - 5)  # Ensure FPS doesn't go below 5
+
+                # Indicate to start running the solver, NOTE or we can just have it run automatically, maybe use a key argument
+                elif event.key == pygame.K_RETURN:
+                    if not mazeGenerated:
+                        current_state = GameState.GENERATING
+                    elif mazeGenerated:
+                        print("Enter Key pressed, now solving...")
+                        current_state = GameState.SOLVING
+                        if solver == 'dijsktra':
+                            mouseSolver.dijkstra_init()
+                        elif solver == 'a_star':
+                            mouseSolver.astar_init()
+                    else:
+                        print("Maze Generation is not finished yet. Please wait then press Enter to solve")
+                # Saving and loading mode
+                elif event.key == pygame.K_q:
+                    if mazeGenerated:
+                        print("Saving...")
+                        maze.save2file(filename="saved_maze_test")
+                    else:
+                        print("Maze Generation not finished yet, please wait until completion then press Q to save maze...")
+                elif event.key == pygame.K_p:
+                    if not mazeLoaded:
+                        print("Key P is pressed, loading the maze now...")
+                        maze.load_file('saved_maze_test')
+                        mazeGenerated = True
+                    else:
+                        print("Maze already loaded, please reset the whole program if you want to reload the maze")
+        # Handle controls from the Tkinter GUI
+        if control_vars["reset"]:
+            # Reset the maze and solver
+            maze.resetMaze()
+            mouseSolver.resetSolver()
+            control_vars["reset"] = False
+            current_state = GameState.IDLE
+            print("Maze and solver reset.")
+
+        # -------------------------------------------------------------------------
+        
+        if paused or control_vars["paused"]:
+            if (stepMode or control_vars["step_mode"]) and (advanceOnestep or control_vars["advance_one_step"]):
+                # Since we are pressing the right key, so we just run for one iteration
+                advanceOnestep = False # 
+                control_vars["advance_one_step"] = False 
             else:
-                continue
+                pass
 
         else:
             if current_state == GameState.IDLE:
@@ -245,10 +427,6 @@ def mainMazeProgram(maze: "Maze.MazeMap", mouseSolver: "solver.Mouse", fpsSpeed:
             print("Current Frame per Second: ", maze.clock.get_fps())
     pygame.quit()
 
-# Function to run the Pygame maze program
-def run_pygame(maze, mouseSolver, fpsSpeed, generatorName, solver):
-    mainMazeProgram(maze, mouseSolver, fpsSpeed, generatorName, solver)
-
 # Function to create the Tkinter settings menu
 def create_settings_menu(maze, mouseSolver):
     # Shared variables to control the Pygame program
@@ -266,8 +444,26 @@ def create_settings_menu(maze, mouseSolver):
         fps = fps_var.get()
 
         # Start the Pygame program in a separate thread
-        threading.Thread(target=run_pygame, args=(maze, mouseSolver, fps, generator)).start()
-    
+        threading.Thread(target=mainMazeProgram, args=(maze, mouseSolver, control_vars, fps, generator, solver)).start()
+
+    def pause_program():
+        control_vars["paused"] = not control_vars["paused"]
+        if control_vars["paused"]:
+            print("Program paused.")
+        else:
+            print("Program resumed.")
+
+    def step_program():
+        control_vars["step_mode"] = True
+        print("Step mode enabled...")
+
+    def advanceOneStep():
+        control_vars["advance_one_step"] = True
+
+    def reset_program():
+        control_vars["reset"] = True
+        print("Program reset requested.")
+
     # Create the Tkinter window
     root = tk.Tk()
     root.title("Maze GUI")
@@ -295,8 +491,21 @@ def create_settings_menu(maze, mouseSolver):
     start_button.pack(pady=20)
 
     # TODO: adding pause, step, reset, solve,
-    # pause_button = tk.Button(root, text="Pause Program", command=)
-    # pause_button.pack(pady=20)
+    # Pause Button
+    pause_button = tk.Button(root, text="Pause/Resume", command=pause_program)
+    pause_button.pack(pady=10)
+
+    # Step Button
+    step_button = tk.Button(root, text="Step", command=step_program)
+    step_button.pack(pady=10)
+
+    # Fast forward Button
+    advanced_one_step_button = tk.Button(root, text="Fast Forward next", command=advanceOneStep)
+    advanced_one_step_button.pack(pady=10)
+
+    # Reset Button
+    reset_button = tk.Button(root, text="Reset", command=reset_program)
+    reset_button.pack(pady=10)
 
     # Run the Tkinter main loop
     root.mainloop()
@@ -308,7 +517,7 @@ if __name__ == "__main__":
     new_mouse = solver.Mouse(maze=new_maze)
 
     # Testing main program
-    mainMazeProgram(new_maze, new_mouse, fpsSpeed=60, generatorName='kruskal', solver='a_star')
+    # mainMazeProgram(new_maze, new_mouse, fpsSpeed=60, generatorName='kruskal', solver='a_star')
     
     # Run the Tkinter settings menu
-    # create_settings_menu(new_maze, new_mouse)
+    create_settings_menu(new_maze, new_mouse)
